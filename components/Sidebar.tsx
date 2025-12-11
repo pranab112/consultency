@@ -156,8 +156,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <span className="font-medium text-sm">Sign Out</span>
         </button>
         
-        <div className="mt-4 text-center">
-            <span className="text-[10px] text-slate-600 font-mono">v2.9-X</span>
+        <div className="mt-4 text-center border-t border-slate-800 pt-3">
+            <span className="text-[10px] text-slate-600 font-mono block">v2.9-X2</span>
+            <span className="text-[8px] text-slate-700 block mt-1">© 2025 GTSDevs. Property of SMM84.</span>
         </div>
       </div>
     </div>

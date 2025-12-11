@@ -154,8 +154,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 </form>
             </div>
             
-            <div className="mt-8 text-center text-xs text-slate-400">
-                <p>© 2024 StudyAbroad Genius. Secure Cloud Platform.</p>
+            <div className="mt-8 text-center space-y-1">
+                <p className="text-[10px] text-slate-500 font-medium">© 2025 [GTSDevs]. Property of [SMM84].</p>
+                <p className="text-[10px] text-slate-400">Unauthorized use is a criminal offense.</p>
             </div>
         </div>
     );
