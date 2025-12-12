@@ -63,6 +63,20 @@ app.use('/api', limiter);
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Serve frontend build files in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '../../dist');
+  app.use(express.static(frontendPath));
+
+  // Handle React routing - serve index.html for all non-API routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
+
 // Root route
 app.get('/', (req, res) => {
   res.json({
