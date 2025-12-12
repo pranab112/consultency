@@ -112,8 +112,18 @@ const startServer = async () => {
     }
 
     // Sync database models (create tables if they don't exist)
-    await sequelize.sync({ force: false });
+    // In production on first run, we may need to force sync once
+    const syncOptions = process.env.FORCE_DB_SYNC === 'true'
+      ? { force: true }
+      : { alter: true }; // Use alter to update schema without data loss
+
+    console.log('📊 Syncing database with options:', syncOptions);
+    await sequelize.sync(syncOptions);
     console.log('✅ Database models synchronized');
+
+    // Log which tables exist
+    const tables = await sequelize.getQueryInterface().showAllTables();
+    console.log('📋 Database tables:', tables);
 
     // Create default admin user if none exists
     const adminCount = await User.count({ where: { role: 'Admin' } });
