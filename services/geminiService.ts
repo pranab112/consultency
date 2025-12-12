@@ -2,7 +2,17 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Make Gemini API optional - app works without it
+const API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY || 'dummy-key-for-optional-ai-features';
+let ai: any = null;
+
+try {
+  if (API_KEY && API_KEY !== 'dummy-key-for-optional-ai-features' && API_KEY !== 'your-google-ai-api-key-here') {
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+  }
+} catch (error) {
+  console.log('Gemini AI features disabled - add API key to enable');
+}
 
 export const generateSop = async (
   studentName: string,
@@ -11,9 +21,12 @@ export const generateSop = async (
   country: string,
   background: string
 ): Promise<string> => {
+  if (!ai) {
+    return "AI features are disabled. To enable SOP generation, please add a Google AI API key in the .env file.";
+  }
   try {
-    const prompt = `Write a professional Statement of Purpose (SOP) for ${studentName} applying to ${course} at ${university} in ${country}. 
-    Background: ${background}. 
+    const prompt = `Write a professional Statement of Purpose (SOP) for ${studentName} applying to ${course} at ${university} in ${country}.
+    Background: ${background}.
     Structure: Introduction, Academic Background, Why this Course, Why this University, Why this Country, Career Goals, Conclusion.
     Keep it under 600 words.`;
 
@@ -32,6 +45,9 @@ export const analyzeVisaRisk = async (
   profile: string,
   country: string
 ): Promise<string> => {
+  if (!ai) {
+    return "AI features are disabled. Add a Google AI API key to enable visa risk analysis.";
+  }
   try {
     const prompt = `Act as an expert visa consultant for ${country}. Analyze the visa approval probability based on the following student profile:
     
@@ -58,6 +74,9 @@ export const analyzeVisaRisk = async (
 };
 
 export const getInterviewQuestion = async (context: string): Promise<string> => {
+    if (!ai) {
+        return "AI features are disabled. Sample question: Why do you want to study in this country?";
+    }
     try {
         const prompt = `You are a strict visa officer for ${context}. Ask me one difficult interview question regarding my study plan or finances. Only return the question text.`;
         const response = await ai.models.generateContent({
@@ -90,6 +109,9 @@ export const recommendUniversities = async (
     courseInterest: string
   }
 ): Promise<UniRecommendation[]> => {
+  if (!ai) {
+    return [];
+  }
   try {
     const prompt = `Act as an expert education counsellor. Recommend 4 universities in ${profile.country} for a student named ${profile.name}.
     
@@ -147,6 +169,9 @@ export interface PassportData {
 }
 
 export const extractPassportData = async (base64Image: string, mimeType: string): Promise<PassportData | null> => {
+  if (!ai) {
+    return null;
+  }
   try {
     const prompt = `Analyze this image of a passport. Extract the following details:
     1. Full Name

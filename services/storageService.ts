@@ -1,11 +1,13 @@
 
-import { Student, Partner, Invoice, Task, AgencySettings, CommissionClaim, Expense, Country } from '../types';
+import { Student, Partner, Invoice, Task, AgencySettings, CommissionClaim, Expense, Country, ApplicationStatus, NocStatus } from '../types';
 import { getCurrentUser } from './authService';
 import { MOCK_STUDENTS_INITIAL, MOCK_PARTNERS_INITIAL } from '../constants';
+import apiService from './api';
 
 const getAgencyId = () => {
     const user = getCurrentUser();
-    return user ? user.agencyId : null;
+    // Use user id as agency id for now
+    return user ? (user.agencyId || user.id || 'default') : null;
 };
 
 // --- GENERIC FETCH ---
@@ -39,8 +41,54 @@ const saveCollection = async (collectionName: string, items: any[]) => {
     localStorage.setItem(key, JSON.stringify(items));
 };
 
-export const fetchStudents = async (): Promise<Student[]> => fetchCollection<Student>("students");
-export const saveStudents = async (students: Student[]): Promise<void> => saveCollection("students", students);
+export const fetchStudents = async (): Promise<Student[]> => {
+    try {
+        // Try to fetch from API first
+        const apiStudents = await apiService.getStudents();
+
+        // Map API response to frontend format
+        if (apiStudents && Array.isArray(apiStudents)) {
+            return apiStudents.map((s: any) => ({
+                id: s.id,
+                name: `${s.firstName} ${s.lastName}`,
+                email: s.email,
+                phone: s.phone,
+                targetCountry: s.preferredCountries?.[0] || Country.USA,
+                status: mapApiStatusToApplicationStatus(s.status),
+                nocStatus: NocStatus.NotApplied,
+                documents: {},
+                notes: s.notes || '',
+                createdAt: new Date(s.createdAt).getTime(),
+                nationality: s.nationality,
+                dateOfBirth: s.dateOfBirth,
+                address: s.address,
+                educationLevel: s.educationLevel,
+                englishProficiency: s.englishProficiency,
+                budget: s.budget,
+            }));
+        }
+        return [];
+    } catch (error) {
+        console.log('Falling back to local storage for students');
+        return fetchCollection<Student>("students");
+    }
+};
+
+// Helper function to map API status to ApplicationStatus
+const mapApiStatusToApplicationStatus = (apiStatus: string): ApplicationStatus => {
+    const statusMap: Record<string, ApplicationStatus> = {
+        'Lead': ApplicationStatus.Lead,
+        'Applied': ApplicationStatus.Applied,
+        'Enrolled': ApplicationStatus.OfferReceived,
+        'Rejected': ApplicationStatus.VisaRejected,
+    };
+    return statusMap[apiStatus] || ApplicationStatus.Lead;
+};
+
+export const saveStudents = async (students: Student[]): Promise<void> => {
+    // Save to localStorage for now (API updates handled separately)
+    return saveCollection("students", students);
+};
 
 export const fetchPartners = async (): Promise<Partner[]> => fetchCollection<Partner>("partners");
 export const savePartners = async (partners: Partner[]): Promise<void> => saveCollection("partners", partners);

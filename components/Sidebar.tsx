@@ -42,13 +42,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const userRole = user?.role || 'Viewer';
   
   const menuItems = [
-    { id: 'dashboard', label: 'Operations', icon: LayoutDashboard, roles: ['Owner', 'Counsellor', 'Viewer'] },
-    { id: 'students', label: 'Students (CRM)', icon: GraduationCap, roles: ['Owner', 'Counsellor', 'Viewer'] },
-    { id: 'ai-tools', label: 'AI Tools Suite', icon: BrainCircuit, locked: isFree, roles: ['Owner', 'Counsellor'] },
-    { id: 'test-prep', label: 'Test Prep Hub', icon: BookOpen, roles: ['Owner', 'Counsellor', 'Viewer'] },
-    { id: 'partners', label: 'Partners', icon: Users, roles: ['Owner', 'Counsellor'] },
-    { id: 'analytics', label: 'Revenue & Stats', icon: PieChart, roles: ['Owner'] },
-    { id: 'activity', label: 'Audit Trail', icon: Activity, roles: ['Owner'] },
+    { id: 'dashboard', label: 'Operations', icon: LayoutDashboard, roles: ['Owner', 'Counsellor', 'Viewer', 'Admin', 'Agent', 'Student'] },
+    { id: 'students', label: 'Students (CRM)', icon: GraduationCap, roles: ['Owner', 'Counsellor', 'Viewer', 'Admin', 'Agent'] },
+    { id: 'ai-tools', label: 'AI Tools Suite', icon: BrainCircuit, locked: isFree, roles: ['Owner', 'Counsellor', 'Admin', 'Agent'] },
+    { id: 'test-prep', label: 'Test Prep Hub', icon: BookOpen, roles: ['Owner', 'Counsellor', 'Viewer', 'Admin', 'Agent'] },
+    { id: 'partners', label: 'Partners', icon: Users, roles: ['Owner', 'Counsellor', 'Admin', 'Agent'] },
+    { id: 'analytics', label: 'Revenue & Stats', icon: PieChart, roles: ['Owner', 'Admin'] },
+    { id: 'activity', label: 'Audit Trail', icon: Activity, roles: ['Owner', 'Admin'] },
   ];
 
   if (loading) {

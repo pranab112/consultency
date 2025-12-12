@@ -1,105 +1,114 @@
-
 import { User, AgencySettings, Country } from '../types';
-
-// Firebase imports removed.
-const isFirebaseReady = false;
+import apiService from './api';
 
 let currentUserCache: User | null = null;
 
-// --- MOCK AUTH HELPERS ---
-const MOCK_ADMIN: User = {
-    id: 'mock-admin-id',
-    name: 'Demo Admin',
-    email: 'admin@demo.com',
-    role: 'Owner',
-    agencyId: 'mock-agency-id'
-};
-
+// Helper to get user from localStorage
 const getLocalUser = (): User | null => {
     const stored = localStorage.getItem('sag_current_user');
     return stored ? JSON.parse(stored) : null;
 };
 
 export const login = async (email: string, password: string): Promise<User | null> => {
-    // Mock Login Fallback (For Preview/Demo)
-    console.log("Using Mock Login System");
-    
-    // Check Demo Admin
-    if (email === 'admin@demo.com' && password === 'password') {
-        currentUserCache = MOCK_ADMIN;
-        localStorage.setItem('sag_current_user', JSON.stringify(MOCK_ADMIN));
-        return MOCK_ADMIN;
+    try {
+        // Try to login via backend API first
+        const response = await apiService.login(email, password);
+
+        if (response && response.user) {
+            currentUserCache = response.user;
+            localStorage.setItem('sag_current_user', JSON.stringify(response.user));
+            return response.user;
+        }
+    } catch (error) {
+        console.error('Backend login failed:', error);
+
+        // Fallback to demo mode for development
+        if (email === 'admin@demo.com' && password === 'password') {
+            const MOCK_ADMIN: User = {
+                id: 'mock-admin-id',
+                name: 'Demo Admin',
+                email: 'admin@demo.com',
+                role: 'Owner',
+                agencyId: 'mock-agency-id'
+            };
+            currentUserCache = MOCK_ADMIN;
+            localStorage.setItem('sag_current_user', JSON.stringify(MOCK_ADMIN));
+            return MOCK_ADMIN;
+        }
+
+        // Also check backend default admin
+        if (email === 'admin@studyabroad.com' && password === 'admin123') {
+            // Let the backend handle this
+            throw error;
+        }
     }
 
-    // Check LocalStorage Registered Users
-    const localUsers = JSON.parse(localStorage.getItem('sag_users') || '[]');
-    const foundUser = localUsers.find((u: any) => u.email === email && u.password === password); // Password plain text for demo only
-    
-    if (foundUser) {
-        const user = { ...foundUser };
-        // Remove password from session object
-        delete user.password;
-        currentUserCache = user;
-        localStorage.setItem('sag_current_user', JSON.stringify(user));
-        return user;
-    }
-
-    // Check for Student Login (from CRM data)
-    // We need to fetch all students from all agencies to check credentials in this mock mode
-    // In a real app, this would be a DB query. Here we cheat and iterate keys or just fail for now
-    // unless implemented specific to the active agency context (which we don't have if not logged in).
-    // For simplicity in mock mode, student login might require creating a student first as an admin.
-    
-    // Simulate invalid login
-    throw new Error("Invalid credentials. Try admin@demo.com / password");
+    throw new Error("Invalid credentials");
 };
 
 export const registerAgency = async (
-    name: string, 
-    email: string, 
-    agencyName: string
+    name: string,
+    email: string,
+    agencyName: string,
+    password?: string
 ): Promise<User> => {
-    // Mock Register
-    const newId = Date.now().toString();
-    const mockUser = {
-        id: newId,
-        name,
-        email,
-        role: 'Owner' as const,
-        agencyId: `agency_${newId}`,
-        password: 'password123' // Stored for demo login
-    };
-    
-    // Save to local storage mock DB
-    const localUsers = JSON.parse(localStorage.getItem('sag_users') || '[]');
-    localUsers.push(mockUser);
-    localStorage.setItem('sag_users', JSON.stringify(localUsers));
+    try {
+        // Register via backend API
+        const response = await apiService.register({
+            name,
+            email,
+            password: password || 'password123',
+            phone: ''
+        });
 
-    // Save default settings for this new mock agency
-    const defaultSettings: AgencySettings = {
-        agencyName: agencyName,
-        email: email,
-        phone: '',
-        address: '',
-        defaultCountry: Country.Australia,
-        currency: 'NPR',
-        notifications: { emailOnVisa: true, dailyReminders: true },
-        subscription: { plan: 'Free' }
-    };
-    localStorage.setItem(`sag_settings_${mockUser.agencyId}`, JSON.stringify(defaultSettings));
+        if (response && response.user) {
+            currentUserCache = response.user;
+            localStorage.setItem('sag_current_user', JSON.stringify(response.user));
 
-    const appUser = { ...mockUser };
-    // @ts-ignore
-    delete appUser.password;
-    
-    currentUserCache = appUser;
-    localStorage.setItem('sag_current_user', JSON.stringify(appUser));
-    return appUser;
+            // Save agency settings
+            const defaultSettings: AgencySettings = {
+                agencyName: agencyName,
+                email: email,
+                phone: '',
+                address: '',
+                defaultCountry: Country.Australia,
+                currency: 'NPR',
+                notifications: { emailOnVisa: true, dailyReminders: true },
+                subscription: { plan: 'Free' }
+            };
+            localStorage.setItem(`sag_settings_${response.user.id}`, JSON.stringify(defaultSettings));
+
+            return response.user;
+        }
+    } catch (error) {
+        console.error('Backend registration failed:', error);
+
+        // Fallback to local storage for demo
+        const newId = Date.now().toString();
+        const mockUser = {
+            id: newId,
+            name,
+            email,
+            role: 'Owner' as const,
+            agencyId: `agency_${newId}`,
+        };
+
+        const localUsers = JSON.parse(localStorage.getItem('sag_users') || '[]');
+        localUsers.push({ ...mockUser, password: password || 'password123' });
+        localStorage.setItem('sag_users', JSON.stringify(localUsers));
+
+        currentUserCache = mockUser;
+        localStorage.setItem('sag_current_user', JSON.stringify(mockUser));
+        return mockUser;
+    }
+
+    throw new Error("Registration failed");
 };
 
 export const logout = async () => {
     currentUserCache = null;
     localStorage.removeItem('sag_current_user');
+    apiService.clearToken();
     window.location.reload();
 };
 
@@ -111,10 +120,29 @@ export const getCurrentUser = (): User | null => {
 };
 
 export const initAuthListener = (callback: (user: User | null) => void) => {
-    // Mock Listener: Checks once on mount
+    // Check for existing user on mount
     const user = getLocalUser();
     currentUserCache = user;
-    callback(user);
-    
+
+    // If we have a token but no user, try to fetch user from backend
+    const token = localStorage.getItem('authToken');
+    if (token && !user) {
+        apiService.getCurrentUser()
+            .then(response => {
+                if (response && response.user) {
+                    currentUserCache = response.user;
+                    localStorage.setItem('sag_current_user', JSON.stringify(response.user));
+                    callback(response.user);
+                } else {
+                    callback(null);
+                }
+            })
+            .catch(() => {
+                callback(null);
+            });
+    } else {
+        callback(user);
+    }
+
     return () => {};
 };

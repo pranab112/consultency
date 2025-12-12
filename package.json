@@ -5,8 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "npm run dev:backend & npm run dev",
+    "dev:backend": "cd server && npm run dev",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:all": "npm run build && cd server && npm run build",
+    "preview": "vite preview",
+    "install:all": "npm install && cd server && npm install",
+    "start:prod": "cd server && npm run start",
+    "postinstall": "cd server && npm install"
   },
   "dependencies": {
     "react": "^19.2.0",
