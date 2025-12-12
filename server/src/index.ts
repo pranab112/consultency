@@ -28,19 +28,26 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5001', 'http://localhost:5002'];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+
+// CORS configuration
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+const corsOptions = corsOrigin === '*'
+  ? { origin: true, credentials: true }
+  : {
+      origin: (origin, callback) => {
+        const allowedOrigins = corsOrigin.split(',').map(o => o.trim());
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    };
+
+app.use(cors(corsOptions));
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
