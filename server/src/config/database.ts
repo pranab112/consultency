@@ -10,8 +10,31 @@ const __dirname = path.dirname(__filename);
 
 let sequelize: Sequelize;
 
-if (process.env.DB_TYPE === 'postgres') {
-  // PostgreSQL configuration for production
+// Check if we have a DATABASE_URL (Railway/Heroku style connection string)
+if (process.env.DATABASE_URL) {
+  // Use connection string for production databases
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    dialectOptions: {
+      ssl: process.env.NODE_ENV === 'production' ? {
+        require: true,
+        rejectUnauthorized: false
+      } : false
+    },
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    define: {
+      timestamps: true,
+      underscored: false
+    }
+  });
+} else if (process.env.DB_TYPE === 'postgres') {
+  // PostgreSQL configuration with individual parameters
   sequelize = new Sequelize({
     dialect: 'postgres',
     host: process.env.DB_HOST || 'localhost',
@@ -49,7 +72,9 @@ if (process.env.DB_TYPE === 'postgres') {
 export const testConnection = async () => {
   try {
     await sequelize.authenticate();
-    console.log(`✅ Database connection established (${process.env.DB_TYPE || 'sqlite'})`);
+    const dbType = process.env.DATABASE_URL ? 'postgres (via DATABASE_URL)' :
+                   process.env.DB_TYPE === 'postgres' ? 'postgres (individual params)' : 'sqlite';
+    console.log(`✅ Database connection established (${dbType})`);
     return true;
   } catch (error) {
     console.error('❌ Unable to connect to the database:', error);
