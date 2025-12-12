@@ -7,12 +7,15 @@ import { authenticate } from '../middleware/auth.js';
 const router = express.Router();
 
 // Generate JWT token
-const generateToken = (userId: string) => {
-  return jwt.sign(
-    { id: userId },
-    process.env.JWT_SECRET || 'secret',
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
+const generateToken = (userId: string, email?: string, role?: string) => {
+  const payload: any = { id: userId };
+  if (email) payload.email = email;
+  if (role) payload.role = role;
+
+  const secret: string = process.env.JWT_SECRET || 'secret';
+  const expiresIn: string = process.env.JWT_EXPIRES_IN || '7d';
+
+  return jwt.sign(payload, secret, { expiresIn: expiresIn as any });
 };
 
 // Login
