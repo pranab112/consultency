@@ -10,8 +10,15 @@ const __dirname = path.dirname(__filename);
 
 let sequelize: Sequelize;
 
+// Debug logging
+console.log('🔍 Database Configuration:');
+console.log('  - DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('  - DB_TYPE:', process.env.DB_TYPE || 'not set');
+console.log('  - NODE_ENV:', process.env.NODE_ENV || 'not set');
+
 // Check if we have a DATABASE_URL (Railway/Heroku style connection string)
 if (process.env.DATABASE_URL) {
+  console.log('  ✅ Using DATABASE_URL for connection');
   // Use connection string for production databases
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
@@ -34,6 +41,7 @@ if (process.env.DATABASE_URL) {
     }
   });
 } else if (process.env.DB_TYPE === 'postgres') {
+  console.log('  ⚠️ Using individual PostgreSQL parameters (not DATABASE_URL)');
   // PostgreSQL configuration with individual parameters
   sequelize = new Sequelize({
     dialect: 'postgres',
@@ -56,6 +64,7 @@ if (process.env.DATABASE_URL) {
   });
 } else {
   // SQLite configuration for local development
+  console.log('  📦 Using SQLite for local development');
   const dbPath = process.env.DB_PATH || path.join(__dirname, '../../database.sqlite');
 
   sequelize = new Sequelize({
